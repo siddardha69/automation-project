@@ -35,41 +35,29 @@ export default function RegisterPage() {
     setErrorMessage(null);
 
     try {
-      // 1. Sign Up the User
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      // 1. Call server-side API to create user + org using service role (bypasses RLS)
+      const res = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, orgName, orgSlug }),
+      });
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        throw new Error(result.error || 'Registration failed.');
+      }
+
+      // 2. Sign the user in on the client side now that account exists
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('Failed to create account. Please check user credentials.');
+      if (signInError) throw signInError;
 
-      // 2. Create the Organization (Tenant)
-      const { data: orgData, error: orgError } = await supabase
-        .from('organizations')
-        .insert({
-          name: orgName,
-          slug: orgSlug,
-        })
-        .select()
-        .single();
-
-      if (orgError) throw orgError;
-      if (!orgData) throw new Error('Organization creation failed.');
-
-      // 3. Create the Member Connection with the Owner role
-      const { error: memberError } = await supabase
-        .from('organization_members')
-        .insert({
-          organization_id: orgData.id,
-          user_id: authData.user.id,
-          role: 'owner',
-        });
-
-      if (memberError) throw memberError;
-
-      // 4. Redirect to the newly created tenant workspace
-      router.push(`/org/${orgData.slug}`);
+      // 3. Redirect to the newly created tenant workspace
+      router.push(`/org/${result.orgSlug}`);
     } catch (err: any) {
       setErrorMessage(err.message || 'An error occurred during account registration.');
       setIsLoading(false);
