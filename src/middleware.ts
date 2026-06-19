@@ -47,7 +47,15 @@ export async function middleware(request: NextRequest) {
 
   // 4. User is signed in but requesting Auth forms (/login, /register)
   if (user && isAuthRoute) {
-    const { data: memberships } = await supabase
+    // Use service role to bypass RLS for org lookup
+    const { createClient: createAdmin } = await import('@supabase/supabase-js');
+    const adminClient = createAdmin(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+
+    const { data: memberships } = await adminClient
       .from('organization_members')
       .select('id, organizations(slug)')
       .eq('user_id', user.id)
@@ -74,7 +82,14 @@ export async function middleware(request: NextRequest) {
     const orgSlug = segments[2];
 
     if (orgSlug) {
-      const { data: membership } = await supabase
+      const { createClient: createAdmin } = await import('@supabase/supabase-js');
+      const adminClient = createAdmin(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        { auth: { autoRefreshToken: false, persistSession: false } }
+      );
+
+      const { data: membership } = await adminClient
         .from('organization_members')
         .select('id, organizations!inner(slug)')
         .eq('user_id', user.id)
@@ -83,7 +98,7 @@ export async function middleware(request: NextRequest) {
         .maybeSingle();
 
       if (!membership) {
-        const { data: fallbackOrgs } = await supabase
+        const { data: fallbackOrgs } = await adminClient
           .from('organization_members')
           .select('organizations(slug)')
           .eq('user_id', user.id)
