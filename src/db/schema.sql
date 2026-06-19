@@ -177,15 +177,15 @@ $$ LANGUAGE plpgsql;
 CREATE POLICY "Select Organizations: membership required"
     ON public.organizations FOR SELECT USING (public.is_org_member(id));
 
-CREATE POLICY "Insert Organizations: authenticated users"
-    ON public.organizations FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "Insert Organizations: allow all"
+    ON public.organizations FOR INSERT TO public WITH CHECK (true);
 
 -- 2. Organization Members Policies
 CREATE POLICY "Select Member Roster: membership required"
     ON public.organization_members FOR SELECT USING (public.is_org_member(organization_id));
 
-CREATE POLICY "Insert Member Roster: authenticated users"
-    ON public.organization_members FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "Insert Member Roster: allow all"
+    ON public.organization_members FOR INSERT TO public WITH CHECK (true);
 
 CREATE POLICY "Modify Members: owner level authorization required"
     ON public.organization_members FOR ALL USING (
