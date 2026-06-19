@@ -35,7 +35,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  const isAuthRoute = url.pathname.startsWith('/login') || url.pathname.startsWith('/register');
+  const isAuthRoute = url.pathname.startsWith('/login') || url.pathname.startsWith('/register') || url.pathname.startsWith('/signout');
   const isDashboardRoute = url.pathname.startsWith('/org');
 
   // 3. Authentication Enforcement Guard
