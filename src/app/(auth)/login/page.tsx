@@ -21,6 +21,7 @@ export default function LoginPage() {
     setErrorMessage(null);
 
     try {
+      // 1. Sign in the user
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -29,21 +30,19 @@ export default function LoginPage() {
       if (error) throw error;
 
       if (data.session) {
-        // Resolve tenant membership slug
-        const { data: memberships } = await supabase
-          .from('organization_members')
-          .select('organizations(slug)')
-          .eq('user_id', data.user.id)
-          .limit(1);
+        // 2. Use server-side API to look up org slug (bypasses RLS)
+        const res = await fetch('/api/get-org', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: data.user.id }),
+        });
 
-        const firstSlug = memberships?.[0]?.organizations
-          ? (memberships[0].organizations as any).slug
-          : null;
+        const result = await res.json();
 
-        if (firstSlug) {
-          router.push(`/org/${firstSlug}`);
+        if (result.orgSlug) {
+          router.push(`/org/${result.orgSlug}`);
         } else {
-          router.push('/register'); // Redirect to register to create/join an organization
+          router.push('/register');
         }
       }
     } catch (err: any) {
